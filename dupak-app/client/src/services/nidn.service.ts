@@ -34,12 +34,14 @@ export interface SINTAPublication {
 }
 
 export interface SINTAResult {
+  success?: boolean;
   profile: SINTAProfile;
   publications: {
     scopus: SINTAPublication[];
     garuda: SINTAPublication[];
     total: number;
   };
+  warnings?: string[];
 }
 
 export const nidnService = {

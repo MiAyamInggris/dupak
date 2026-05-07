@@ -16,8 +16,10 @@ export default function NIDNLookup({ onProfileFound, onSINTAFound }: NIDNLookupP
   const [step, setStep] = useState<FetchStep>('idle');
   const [results, setResults] = useState<PDDIKTIDosenProfile[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
-  const [sintaStatus, setSintaStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [sintaStatus, setSintaStatus] = useState<'idle' | 'loading' | 'done' | 'partial' | 'error'>('idle');
   const [sintaPubCount, setSintaPubCount] = useState(0);
+  const [sintaWarnings, setSintaWarnings] = useState<string[]>([]);
+  const [sintaErrorDetail, setSintaErrorDetail] = useState('');
 
   const isLoadingPDDIKTI = step === 'searching' || step === 'fetching_detail';
 
@@ -63,16 +65,27 @@ export default function NIDNLookup({ onProfileFound, onSINTAFound }: NIDNLookupP
   }
 
   async function handleSINTAFetch() {
-    if (!sintaId.trim()) {
-      return;
-    }
+    if (!sintaId.trim()) return;
     setSintaStatus('loading');
+    setSintaWarnings([]);
+    setSintaErrorDetail('');
+
     try {
       const data = await nidnService.fetchSINTA(sintaId.trim());
-      onSINTAFound(data);
-      setSintaPubCount(data.publications.total);
-      setSintaStatus('done');
-    } catch {
+
+      if (data.warnings && data.warnings.length > 0) {
+        setSintaWarnings(data.warnings);
+      }
+
+      if (data.publications.total === 0) {
+        setSintaStatus('partial');
+      } else {
+        onSINTAFound(data);
+        setSintaPubCount(data.publications.total);
+        setSintaStatus('done');
+      }
+    } catch (err: unknown) {
+      setSintaErrorDetail(err instanceof Error ? err.message : 'Error tidak diketahui');
       setSintaStatus('error');
     }
   }
@@ -202,17 +215,51 @@ export default function NIDNLookup({ onProfileFound, onSINTAFound }: NIDNLookupP
         </div>
 
         {sintaStatus === 'done' && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
-            <CheckCircle size={15} />
-            <span>
-              {sintaPubCount} publikasi dari SINTA berhasil diimpor ke tab Penelitian. Mohon konfirmasi jenis jurnal dan peran penulis.
-            </span>
+          <div className="mt-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={15} className="flex-shrink-0" />
+              <span>{sintaPubCount} publikasi dari SINTA berhasil diimpor ke Tab Penelitian. Mohon konfirmasi jenis jurnal dan peran penulis.</span>
+            </div>
+            {sintaWarnings.map((w, i) => (
+              <p key={i} className="text-xs mt-1 opacity-75 pl-5">{w}</p>
+            ))}
           </div>
         )}
+
+        {sintaStatus === 'partial' && (
+          <div className="mt-2 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded px-3 py-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={15} className="flex-shrink-0" />
+              <span className="font-medium">Profil SINTA ditemukan tetapi data publikasi tidak berhasil diparsing.</span>
+            </div>
+            <p className="text-xs mt-1 pl-5">Silakan isi data publikasi secara manual di Tab Penelitian.</p>
+            {sintaWarnings.map((w, i) => (
+              <p key={i} className="text-xs mt-1 pl-5 opacity-75">{w}</p>
+            ))}
+          </div>
+        )}
+
         {sintaStatus === 'error' && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
-            <AlertCircle size={15} className="flex-shrink-0" />
-            <span>Gagal mengambil data SINTA. SINTA mungkin tidak tersedia saat ini — silakan isi data publikasi secara manual.</span>
+          <div className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={15} className="flex-shrink-0" />
+              <span className="font-medium">Gagal mengambil data SINTA</span>
+            </div>
+            {sintaErrorDetail && (
+              <p className="text-xs mt-1 pl-5 opacity-75">{sintaErrorDetail}</p>
+            )}
+            <p className="text-xs mt-2 pl-5">
+              Solusi: Buka{' '}
+              <a
+                href={`https://sinta.kemdiktisaintek.go.id/authors/profile/${sintaId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline text-blue-600"
+              >
+                profil SINTA Anda
+              </a>
+              {' '}dan salin data publikasi secara manual.
+            </p>
           </div>
         )}
       </div>
