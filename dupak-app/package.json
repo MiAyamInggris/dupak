@@ -9,6 +9,8 @@
     "install:all": "npm install && npm install --workspace=client && npm install --workspace=server"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@vercel/node": "^3.0.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.5.4"
   }
 }
