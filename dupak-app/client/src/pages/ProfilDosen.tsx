@@ -4,14 +4,43 @@ import { User, ChevronRight, Save } from 'lucide-react';
 import { useDupak } from '../context/DupakContext';
 import type { ProfilDosen as ProfilDosenType, JabatanAkademik, Golongan } from '../types';
 import { GOLONGAN_BY_JABATAN } from '../utils/akTable';
+import NIDNLookup from '../components/NIDNLookup';
+import { nidnService } from '../services/nidn.service';
+import type { PDDIKTIDosenProfile, SINTAResult } from '../services/nidn.service';
 
 const JABATAN_OPTIONS: JabatanAkademik[] = ['Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Profesor'];
 
 export default function ProfilDosen() {
-  const { state, setProfil } = useDupak();
+  const { state, setProfil, addPublikasiFromSINTA } = useDupak();
   const navigate = useNavigate();
   const [form, setForm] = useState<ProfilDosenType>(state.profil);
   const [saved, setSaved] = useState(false);
+
+  function handleProfileFound(pddiktiData: PDDIKTIDosenProfile) {
+    const jabatan = nidnService.mapJabatan(pddiktiData.jabatan_fungsional);
+    setForm(prev => {
+      const next: ProfilDosenType = {
+        ...prev,
+        nama: pddiktiData.nama || prev.nama,
+        nidn: pddiktiData.nidn || prev.nidn,
+        unitKerja: pddiktiData.nama_pt || prev.unitKerja,
+        programStudi: pddiktiData.nama_prodi || prev.programStudi,
+        jenisKelamin: pddiktiData.jenis_kelamin === 'P' ? 'P' : prev.jenisKelamin,
+      };
+      if (jabatan) {
+        next.jabatanAkademik = jabatan;
+        const golOptions = GOLONGAN_BY_JABATAN[jabatan];
+        if (golOptions?.length) next.golongan = golOptions[0];
+      }
+      return next;
+    });
+    setSaved(false);
+  }
+
+  function handleSINTAFound(sintaData: SINTAResult) {
+    const allPubs = [...sintaData.publications.scopus, ...sintaData.publications.garuda];
+    addPublikasiFromSINTA(allPubs);
+  }
 
   function set<K extends keyof ProfilDosenType>(key: K, value: ProfilDosenType[K]) {
     setForm(prev => {
@@ -55,6 +84,8 @@ export default function ProfilDosen() {
           <p className="text-sm text-gray-500">Data identitas dan jabatan akademik dosen</p>
         </div>
       </div>
+
+      <NIDNLookup onProfileFound={handleProfileFound} onSINTAFound={handleSINTAFound} />
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Identitas */}

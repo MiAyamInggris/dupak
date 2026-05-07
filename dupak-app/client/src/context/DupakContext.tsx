@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { v4 as uuid } from 'uuid';
 import type {
   DupakState,
   ProfilDosen,
@@ -7,7 +8,10 @@ import type {
   KegiatanPenelitian,
   KegiatanPengabdian,
   KegiatanPenunjang,
+  SINTAPublication,
 } from '../types';
+import { AK_PENELITIAN } from '../utils/akTable';
+import { computeAKFromPenelitian, getAuthorshipPercentage } from '../utils/calculations';
 
 const defaultProfil: ProfilDosen = {
   nama: '',
@@ -48,6 +52,7 @@ type Action =
   | { type: 'UPDATE_PELAKSANAAN'; payload: PelaksanaanPendidikan }
   | { type: 'DELETE_PELAKSANAAN'; id: string }
   | { type: 'ADD_PENELITIAN'; payload: KegiatanPenelitian }
+  | { type: 'ADD_PENELITIAN_BATCH'; payload: KegiatanPenelitian[] }
   | { type: 'UPDATE_PENELITIAN'; payload: KegiatanPenelitian }
   | { type: 'DELETE_PENELITIAN'; id: string }
   | { type: 'ADD_PENGABDIAN'; payload: KegiatanPengabdian }
@@ -79,6 +84,8 @@ function reducer(state: DupakState, action: Action): DupakState {
 
     case 'ADD_PENELITIAN':
       return { ...state, penelitian: [...state.penelitian, action.payload] };
+    case 'ADD_PENELITIAN_BATCH':
+      return { ...state, penelitian: [...state.penelitian, ...action.payload] };
     case 'UPDATE_PENELITIAN':
       return { ...state, penelitian: state.penelitian.map(i => i.id === action.payload.id ? action.payload : i) };
     case 'DELETE_PENELITIAN':
@@ -124,6 +131,7 @@ interface DupakContextValue {
   addPenunjang: (i: KegiatanPenunjang) => void;
   updatePenunjang: (i: KegiatanPenunjang) => void;
   deletePenunjang: (id: string) => void;
+  addPublikasiFromSINTA: (pubs: SINTAPublication[]) => void;
   loadState: (s: DupakState) => void;
 }
 
@@ -150,6 +158,29 @@ export function DupakProvider({ children }: { children: React.ReactNode }) {
   const deletePenunjang = useCallback((id: string) => dispatch({ type: 'DELETE_PENUNJANG', id }), []);
   const loadState = useCallback((s: DupakState) => dispatch({ type: 'LOAD_STATE', payload: s }), []);
 
+  const addPublikasiFromSINTA = useCallback((pubs: SINTAPublication[]) => {
+    const mapped: KegiatanPenelitian[] = pubs.map(pub => {
+      const jenis = pub.type === 'scopus' ? 'jurnal_intl_q1q2' as const : 'jurnal_nas_s1s2' as const;
+      const akDasar = AK_PENELITIAN[jenis].akDasar;
+      const persentaseAuthor = getAuthorshipPercentage('pertama') * 100;
+      const ak = computeAKFromPenelitian({ jenis, akDasar, posisiPenulis: 'pertama', persentaseAuthor, jumlahPenulis: 1, judul: pub.title, tahun: pub.year });
+      return {
+        id: uuid(),
+        jenis,
+        judul: pub.title,
+        namaJurnal: pub.journal,
+        tahun: pub.year,
+        posisiPenulis: 'pertama',
+        jumlahPenulis: 1,
+        akDasar,
+        persentaseAuthor,
+        ak,
+        needsReview: true,
+      };
+    });
+    dispatch({ type: 'ADD_PENELITIAN_BATCH', payload: mapped });
+  }, []);
+
   return (
     <DupakContext.Provider value={{
       state,
@@ -158,6 +189,7 @@ export function DupakProvider({ children }: { children: React.ReactNode }) {
       addPenelitian, updatePenelitian, deletePenelitian,
       addPengabdian, updatePengabdian, deletePengabdian,
       addPenunjang, updatePenunjang, deletePenunjang,
+      addPublikasiFromSINTA,
       loadState,
     }}>
       {children}

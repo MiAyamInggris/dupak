@@ -12,7 +12,14 @@
       "Bash(curl -s -X POST http://localhost:3001/api/calculate/eligibility -H 'Content-Type: application/json' -d '{ *)",
       "Bash(pkill -f \"vite --port 5173\")",
       "Bash(pkill -f \"tsx watch src/index.ts\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(grep -v '^\\\\./$')",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m 'chore: untrack Archive.zip \\(covered by .gitignore\\) *)"
     ]
   }
 }

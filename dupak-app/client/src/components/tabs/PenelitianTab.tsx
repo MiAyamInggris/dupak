@@ -53,7 +53,7 @@ export default function PenelitianTab() {
 
   function handleEdit(item: KegiatanPenelitian) {
     setForm({
-      jenis: item.jenis,
+      jenis: item.jenis as typeof form.jenis,
       judul: item.judul,
       namaJurnal: item.namaJurnal,
       penerbit: item.penerbit,
@@ -81,7 +81,7 @@ export default function PenelitianTab() {
     e.preventDefault();
     const ak = computeAKFromPenelitian({ ...form });
     if (editingId) {
-      updatePenelitian({ ...form, id: editingId, ak });
+      updatePenelitian({ ...form, id: editingId, ak, needsReview: false });
     } else {
       addPenelitian({ ...form, id: uuid(), ak });
     }
@@ -227,6 +227,12 @@ export default function PenelitianTab() {
                 return (
                   <tr key={item.id} className={`hover:bg-gray-50 ${editingId === item.id ? 'bg-blue-50' : ''}`}>
                     <td className="td">
+                      {item.needsReview && (
+                        <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-300 text-yellow-800 text-xs px-2 py-0.5 rounded mb-1">
+                          <span>⚠️</span>
+                          <span>Diimpor dari SINTA — konfirmasi <strong>Jenis</strong> &amp; <strong>Peran Penulis</strong></span>
+                        </div>
+                      )}
                       <div className="font-medium text-xs leading-snug max-w-xs">{item.judul}</div>
                       <div className="text-xs text-gray-400">{m.label}</div>
                     </td>

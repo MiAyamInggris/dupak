@@ -112,6 +112,14 @@ export interface KegiatanPenelitian {
   akDasar: number;
   persentaseAuthor: number;
   ak: number;
+  needsReview?: boolean;
+}
+
+export interface SINTAPublication {
+  title: string;
+  journal: string;
+  year: number;
+  type: 'scopus' | 'garuda' | 'scholar';
 }
 
 // ─── Tab 4: Pengabdian ──────────────────────────────────────────────────────
