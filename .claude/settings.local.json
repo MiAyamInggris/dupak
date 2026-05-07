@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(curl -s -X POST http://localhost:3001/api/calculate/ak-penelitian -H 'Content-Type: application/json' -d '{\"akDasar\": 40, \"posisiPenulis\": \"pertama\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:3001/api/calculate/ak-mengajar -H 'Content-Type: application/json' -d '{\"sks\": 6, \"teamTeaching\": true, \"jumlahTeam\": 3}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/calculate/eligibility -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(pkill -f \"vite --port 5173\")",
+      "Bash(pkill -f \"tsx watch src/index.ts\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)"
+    ]
+  }
+}
