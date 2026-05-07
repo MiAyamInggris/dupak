@@ -170,12 +170,12 @@ export default function NIDNLookup({ onProfileFound, onSINTAFound }: NIDNLookupP
         <p className="text-xs text-gray-500 mb-2">
           Temukan SINTA ID Anda di{' '}
           <a
-            href="https://sinta.kemdikbud.go.id/authors"
+            href="https://sinta.kemdiktisaintek.go.id/authors"
             target="_blank"
             rel="noreferrer"
             className="text-blue-600 underline"
           >
-            sinta.kemdikbud.go.id/authors
+            sinta.kemdiktisaintek.go.id/authors
           </a>
           {' '}— angka di URL profil Anda (misal: 6123456)
         </p>

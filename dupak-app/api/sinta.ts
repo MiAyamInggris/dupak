@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio';
 // Profile page: https://sinta.kemdikbud.go.id/authors/profile/{sintaId}
 // Publications: add ?page=1&view=documentsscopus / documentsgaruda
 
-const SINTA_BASE = 'https://sinta.kemdikbud.go.id';
+const SINTA_BASE = 'https://sinta.kemdiktisaintek.go.id';
 
 interface SINTAPublication {
   title: string;

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const PDDIKTI_BASE = 'https://api-frontend.kemdikbud.go.id';
+const PDDIKTI_BASE = 'https://pddikti.kemdiktisaintek.go.id';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
