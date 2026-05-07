@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, FlaskConical } from 'lucide-react';
+import { Plus, Trash2, FlaskConical, Pencil } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
 import { useDupak } from '../../context/DupakContext';
 import { AK_PENELITIAN } from '../../utils/akTable';
@@ -33,9 +33,10 @@ function emptyForm(): Omit<KegiatanPenelitian, 'id' | 'ak'> {
 }
 
 export default function PenelitianTab() {
-  const { state, addPenelitian, deletePenelitian } = useDupak();
+  const { state, addPenelitian, updatePenelitian, deletePenelitian } = useDupak();
   const [form, setForm] = useState(emptyForm());
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const meta = AK_PENELITIAN[form.jenis];
   const previewAK = computeAKFromPenelitian({ ...form });
@@ -50,11 +51,42 @@ export default function PenelitianTab() {
     setForm(prev => ({ ...prev, posisiPenulis: posisi, persentaseAuthor: getAuthorshipPercentage(posisi) * 100 }));
   }
 
-  function handleAdd(e: React.FormEvent) {
+  function handleEdit(item: KegiatanPenelitian) {
+    setForm({
+      jenis: item.jenis,
+      judul: item.judul,
+      namaJurnal: item.namaJurnal,
+      penerbit: item.penerbit,
+      volume: item.volume,
+      nomor: item.nomor,
+      tahun: item.tahun,
+      isbn: item.isbn,
+      issn: item.issn,
+      posisiPenulis: item.posisiPenulis,
+      jumlahPenulis: item.jumlahPenulis,
+      akDasar: item.akDasar,
+      persentaseAuthor: item.persentaseAuthor,
+    });
+    setEditingId(item.id);
+    setShowForm(true);
+  }
+
+  function handleCancel() {
+    setForm(emptyForm());
+    setEditingId(null);
+    setShowForm(false);
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const ak = computeAKFromPenelitian({ ...form });
-    addPenelitian({ ...form, id: uuid(), ak });
+    if (editingId) {
+      updatePenelitian({ ...form, id: editingId, ak });
+    } else {
+      addPenelitian({ ...form, id: uuid(), ak });
+    }
     setForm(emptyForm());
+    setEditingId(null);
     setShowForm(false);
   }
 
@@ -67,13 +99,16 @@ export default function PenelitianTab() {
           <p className="text-sm text-gray-500">Publikasi ilmiah, buku, paten, dan kegiatan penelitian lainnya.</p>
           <p className="text-xs text-gray-400 mt-0.5">Formula penulis: Tunggal=100% · Pertama=60% · Kedua=40% · Ketiga+=20%</p>
         </div>
-        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => setShowForm(s => !s)}>
+        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => { setEditingId(null); setForm(emptyForm()); setShowForm(s => !s); }}>
           <Plus size={15} /> Tambah
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+        <form onSubmit={handleSubmit} className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+          {editingId && (
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Mode Edit</p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
               <label className="label">Jenis Publikasi / Kegiatan <span className="text-red-500">*</span></label>
@@ -159,8 +194,8 @@ export default function PenelitianTab() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button type="button" className="btn-secondary text-sm" onClick={() => setShowForm(false)}>Batal</button>
-              <button type="submit" className="btn-primary text-sm">Simpan</button>
+              <button type="button" className="btn-secondary text-sm" onClick={handleCancel}>Batal</button>
+              <button type="submit" className="btn-primary text-sm">{editingId ? 'Perbarui' : 'Simpan'}</button>
             </div>
           </div>
         </form>
@@ -182,7 +217,7 @@ export default function PenelitianTab() {
                 <th className="th">Posisi</th>
                 <th className="th text-right">AK Dasar</th>
                 <th className="th text-right">AK Final</th>
-                <th className="th w-10" />
+                <th className="th w-16" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -190,7 +225,7 @@ export default function PenelitianTab() {
                 const m = AK_PENELITIAN[item.jenis];
                 const posisi = POSISI_OPTIONS.find(p => p.value === item.posisiPenulis);
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr key={item.id} className={`hover:bg-gray-50 ${editingId === item.id ? 'bg-blue-50' : ''}`}>
                     <td className="td">
                       <div className="font-medium text-xs leading-snug max-w-xs">{item.judul}</div>
                       <div className="text-xs text-gray-400">{m.label}</div>
@@ -205,9 +240,14 @@ export default function PenelitianTab() {
                     <td className="td text-right text-gray-500">{item.akDasar}</td>
                     <td className="td text-right font-semibold text-blue-700">{item.ak}</td>
                     <td className="td">
-                      <button onClick={() => deletePenelitian(item.id)} className="text-red-400 hover:text-red-600 p-1">
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleEdit(item)} className="text-blue-400 hover:text-blue-600 p-1" title="Edit">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => deletePenelitian(item.id)} className="text-red-400 hover:text-red-600 p-1" title="Hapus">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Star } from 'lucide-react';
+import { Plus, Trash2, Star, Pencil } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
 import { useDupak } from '../../context/DupakContext';
 import { AK_PENUNJANG } from '../../utils/akTable';
@@ -19,18 +19,36 @@ function emptyForm(): Omit<KegiatanPenunjang, 'id'> {
 }
 
 export default function PenunjangTab() {
-  const { state, addPenunjang, deletePenunjang } = useDupak();
+  const { state, addPenunjang, updatePenunjang, deletePenunjang } = useDupak();
   const [form, setForm] = useState(emptyForm());
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   function handleJenis(jenis: JenisPenunjang) {
     setForm(prev => ({ ...prev, jenis, ak: AK_PENUNJANG[jenis].ak }));
   }
 
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    addPenunjang({ ...form, id: uuid() });
+  function handleEdit(item: KegiatanPenunjang) {
+    setForm({ jenis: item.jenis, nama: item.nama, tingkat: item.tingkat, tahun: item.tahun, bukti: item.bukti, ak: item.ak });
+    setEditingId(item.id);
+    setShowForm(true);
+  }
+
+  function handleCancel() {
     setForm(emptyForm());
+    setEditingId(null);
+    setShowForm(false);
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (editingId) {
+      updatePenunjang({ ...form, id: editingId });
+    } else {
+      addPenunjang({ ...form, id: uuid() });
+    }
+    setForm(emptyForm());
+    setEditingId(null);
     setShowForm(false);
   }
 
@@ -43,13 +61,16 @@ export default function PenunjangTab() {
           <p className="text-sm text-gray-500">Kegiatan penunjang Tridharma perguruan tinggi.</p>
           <p className="text-xs text-orange-500 mt-0.5 font-medium">Maks. 10% dari total AK yang dibutuhkan untuk kenaikan jabatan</p>
         </div>
-        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => setShowForm(s => !s)}>
+        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => { setEditingId(null); setForm(emptyForm()); setShowForm(s => !s); }}>
           <Plus size={15} /> Tambah
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+        <form onSubmit={handleSubmit} className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+          {editingId && (
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Mode Edit</p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
               <label className="label">Jenis Kegiatan <span className="text-red-500">*</span></label>
@@ -85,8 +106,8 @@ export default function PenunjangTab() {
               <span className="font-bold text-blue-700 text-base">{form.ak}</span>
             </div>
             <div className="flex gap-2">
-              <button type="button" className="btn-secondary text-sm" onClick={() => setShowForm(false)}>Batal</button>
-              <button type="submit" className="btn-primary text-sm">Simpan</button>
+              <button type="button" className="btn-secondary text-sm" onClick={handleCancel}>Batal</button>
+              <button type="submit" className="btn-primary text-sm">{editingId ? 'Perbarui' : 'Simpan'}</button>
             </div>
           </div>
         </form>
@@ -106,12 +127,12 @@ export default function PenunjangTab() {
                 <th className="th">Tingkat</th>
                 <th className="th">Tahun</th>
                 <th className="th text-right">AK</th>
-                <th className="th w-10" />
+                <th className="th w-16" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {state.penunjang.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50">
+                <tr key={item.id} className={`hover:bg-gray-50 ${editingId === item.id ? 'bg-blue-50' : ''}`}>
                   <td className="td">
                     <div className="font-medium text-xs leading-snug max-w-xs">{item.nama}</div>
                     <div className="text-xs text-gray-400">{AK_PENUNJANG[item.jenis].label}</div>
@@ -120,9 +141,14 @@ export default function PenunjangTab() {
                   <td className="td">{item.tahun}</td>
                   <td className="td text-right font-semibold text-blue-700">{item.ak}</td>
                   <td className="td">
-                    <button onClick={() => deletePenunjang(item.id)} className="text-red-400 hover:text-red-600 p-1">
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleEdit(item)} className="text-blue-400 hover:text-blue-600 p-1" title="Edit">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => deletePenunjang(item.id)} className="text-red-400 hover:text-red-600 p-1" title="Hapus">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

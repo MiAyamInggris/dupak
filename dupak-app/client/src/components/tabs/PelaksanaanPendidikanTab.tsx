@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, BookOpen } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Pencil } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
 import { useDupak } from '../../context/DupakContext';
 import { AK_PELAKSANAAN } from '../../utils/akTable';
@@ -7,6 +7,17 @@ import { computeAKPelaksanaan } from '../../utils/calculations';
 import type { PelaksanaanPendidikan, JenisPelaksanaanPendidikan } from '../../types';
 
 const JENIS_OPTIONS = Object.entries(AK_PELAKSANAAN) as [JenisPelaksanaanPendidikan, typeof AK_PELAKSANAAN[JenisPelaksanaanPendidikan]][];
+
+function generateTahunAkademikOptions(): string[] {
+  const current = new Date().getFullYear();
+  const options: string[] = [];
+  for (let y = 2010; y <= current + 2; y++) {
+    options.push(`${y}/${y + 1}`);
+  }
+  return options;
+}
+
+const TAHUN_AKADEMIK_OPTIONS = generateTahunAkademikOptions();
 
 function emptyForm(): Omit<PelaksanaanPendidikan, 'id' | 'ak'> {
   return {
@@ -26,9 +37,10 @@ function emptyForm(): Omit<PelaksanaanPendidikan, 'id' | 'ak'> {
 }
 
 export default function PelaksanaanPendidikanTab() {
-  const { state, addPelaksanaan, deletePelaksanaan } = useDupak();
+  const { state, addPelaksanaan, updatePelaksanaan, deletePelaksanaan } = useDupak();
   const [form, setForm] = useState(emptyForm());
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const meta = AK_PELAKSANAAN[form.jenis];
 
@@ -45,13 +57,43 @@ export default function PelaksanaanPendidikanTab() {
     }));
   }
 
+  function handleEdit(item: PelaksanaanPendidikan) {
+    setForm({
+      jenis: item.jenis,
+      mataKuliah: item.mataKuliah,
+      sks: item.sks,
+      semester: item.semester,
+      tahunAkademik: item.tahunAkademik,
+      teamTeaching: item.teamTeaching,
+      jumlahTeam: item.jumlahTeam,
+      jumlahMahasiswa: item.jumlahMahasiswa,
+      keterangan: item.keterangan,
+      akDasar: item.akDasar,
+      akPerUnit: item.akPerUnit,
+      jumlah: item.jumlah,
+    });
+    setEditingId(item.id);
+    setShowForm(true);
+  }
+
+  function handleCancel() {
+    setForm(emptyForm());
+    setEditingId(null);
+    setShowForm(false);
+  }
+
   const previewAK = computeAKPelaksanaan({ ...form, akDasar: meta.akPerUnit });
 
-  function handleAdd(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const ak = computeAKPelaksanaan({ ...form });
-    addPelaksanaan({ ...form, id: uuid(), ak });
+    if (editingId) {
+      updatePelaksanaan({ ...form, id: editingId, ak });
+    } else {
+      addPelaksanaan({ ...form, id: uuid(), ak });
+    }
     setForm(emptyForm());
+    setEditingId(null);
     setShowForm(false);
   }
 
@@ -64,13 +106,16 @@ export default function PelaksanaanPendidikanTab() {
           <p className="text-sm text-gray-500">Input kegiatan mengajar, membimbing, menguji, dan pengembangan pembelajaran.</p>
           <p className="text-xs text-gray-400 mt-0.5">Team teaching: SKS dibagi jumlah anggota tim × 0,5 AK/SKS/semester</p>
         </div>
-        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => setShowForm(s => !s)}>
+        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => { setEditingId(null); setForm(emptyForm()); setShowForm(s => !s); }}>
           <Plus size={15} /> Tambah
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+        <form onSubmit={handleSubmit} className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+          {editingId && (
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Mode Edit</p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
               <label className="label">Jenis Kegiatan <span className="text-red-500">*</span></label>
@@ -102,8 +147,11 @@ export default function PelaksanaanPendidikanTab() {
                 </div>
                 <div>
                   <label className="label">Tahun Akademik</label>
-                  <input className="input-field" value={form.tahunAkademik ?? ''} onChange={e => setForm(p => ({ ...p, tahunAkademik: e.target.value }))}
-                    placeholder="2024/2025" />
+                  <select className="input-field" value={form.tahunAkademik ?? ''} onChange={e => setForm(p => ({ ...p, tahunAkademik: e.target.value }))}>
+                    {TAHUN_AKADEMIK_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="md:col-span-2">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -155,8 +203,8 @@ export default function PelaksanaanPendidikanTab() {
               <span className="text-gray-500 ml-1">AK</span>
             </div>
             <div className="flex gap-2">
-              <button type="button" className="btn-secondary text-sm" onClick={() => setShowForm(false)}>Batal</button>
-              <button type="submit" className="btn-primary text-sm">Simpan</button>
+              <button type="button" className="btn-secondary text-sm" onClick={handleCancel}>Batal</button>
+              <button type="submit" className="btn-primary text-sm">{editingId ? 'Perbarui' : 'Simpan'}</button>
             </div>
           </div>
         </form>
@@ -175,7 +223,7 @@ export default function PelaksanaanPendidikanTab() {
                 <th className="th">Kegiatan</th>
                 <th className="th">Detail</th>
                 <th className="th text-right">AK</th>
-                <th className="th w-10" />
+                <th className="th w-16" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -190,7 +238,7 @@ export default function PelaksanaanPendidikanTab() {
                   detail = `${item.jumlah}×`;
                 }
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr key={item.id} className={`hover:bg-gray-50 ${editingId === item.id ? 'bg-blue-50' : ''}`}>
                     <td className="td">
                       <div className="font-medium">{m.label}</div>
                       {item.mataKuliah && <div className="text-xs text-gray-400">{item.mataKuliah}</div>}
@@ -199,9 +247,14 @@ export default function PelaksanaanPendidikanTab() {
                     <td className="td text-gray-500">{detail}</td>
                     <td className="td text-right font-semibold text-blue-700">{item.ak}</td>
                     <td className="td">
-                      <button onClick={() => deletePelaksanaan(item.id)} className="text-red-400 hover:text-red-600 p-1">
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleEdit(item)} className="text-blue-400 hover:text-blue-600 p-1" title="Edit">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => deletePelaksanaan(item.id)} className="text-red-400 hover:text-red-600 p-1" title="Hapus">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
